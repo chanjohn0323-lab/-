@@ -1,0 +1,27 @@
+{
+  "id": "./",
+  "name": "클래시 로얄 8슬롯 룰렛",
+  "short_name": "클래시 룰렛",
+  "description": "8개의 독립 슬롯과 전체 한 번에 돌리기를 지원하는 카드 룰렛",
+  "lang": "ko-KR",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#f4f5f7",
+  "theme_color": "#3769d6",
+  "icons": [
+    {
+      "src": "./icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "./icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ]
+}

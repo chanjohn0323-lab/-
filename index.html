@@ -1,0 +1,128 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#3769d6">
+<meta name="description" content="클래시 로얄 8슬롯 독립 룰렛">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<title>클래시 로얄 8슬롯 룰렛</title>
+<style>
+  :root { color-scheme: light dark; --bg:#f4f5f7; --card:#fff; --panel:#eef0f3; --text:#20242b; --muted:#69717d; --border:#d9dde4; --accent:#3769d6; }
+  @media (prefers-color-scheme:dark) {
+    :root { --bg:#15171b; --card:#22262c; --panel:#30353d; --text:#f2f4f7; --muted:#b1b8c2; --border:#424954; --accent:#527fe8; }
+  }
+  * { box-sizing:border-box; }
+  body { margin:0; padding:20px; background:var(--bg); color:var(--text); font-family:system-ui,-apple-system,"Noto Sans KR",sans-serif; }
+  main { max-width:1000px; margin:auto; }
+  header { display:flex; flex-wrap:wrap; justify-content:space-between; align-items:center; gap:10px; margin-bottom:16px; }
+  h1 { font-size:22px; margin:0 0 4px; }
+  .sub,.hint { color:var(--muted); font-size:13px; }
+  .grid { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:12px; }
+  .slot { min-width:0; border:1px solid var(--border); border-radius:14px; padding:12px; background:var(--card); }
+  .slot-head { display:flex; justify-content:space-between; margin-bottom:10px; font-weight:750; }
+  select,button { font:inherit; }
+  select { width:100%; padding:9px 8px; border:1px solid var(--border); border-radius:8px; background:var(--panel); color:var(--text); margin-bottom:10px; }
+  .machine { min-height:78px; display:flex; flex-direction:column; align-items:center; justify-content:center; border-radius:10px; background:var(--panel); padding:8px; margin-bottom:10px; text-align:center; }
+  .number { font-size:11px; color:var(--muted); }
+  .result { font-size:19px; font-weight:800; overflow-wrap:anywhere; }
+  .machine.spinning .result { opacity:.65; }
+  .actions { display:grid; grid-template-columns:1fr 1fr; gap:7px; }
+  button { border-radius:8px; padding:9px 5px; font-size:13px; font-weight:750; cursor:pointer; }
+  .spin { background:var(--accent); color:white; border:1px solid var(--accent); }
+  .reset { background:var(--panel); color:var(--text); border:1px solid var(--border); }
+  button:disabled,select:disabled { opacity:.45; cursor:not-allowed; }
+  .stats,.history { font-size:12px; color:var(--muted); margin-top:9px; line-height:1.6; overflow-wrap:anywhere; }
+  .history strong { color:var(--text); }
+  .hint { margin-top:14px; }
+  .spin-all { background:var(--accent); color:white; border:1px solid var(--accent); padding:10px 15px; border-radius:9px; font-weight:800; }
+  @media(max-width:700px) { body { padding:12px; } .grid { grid-template-columns:repeat(2,minmax(0,1fr)); gap:9px; } .slot { padding:10px; } .result { font-size:17px; } }
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <div><h1>클래시 로얄 8슬롯 룰렛</h1><div class="sub">8개의 독립적인 룰렛 · 슬롯마다 종류를 자유롭게 선택</div></div>
+    <div class="sub">공격 룰렛에 광부 포함</div>
+    <button type="button" id="spin-all" class="spin-all">전체 한 번에 돌리기</button>
+  </header>
+  <div class="grid" id="roulette-grid"></div>
+  <p class="hint">각 슬롯은 독립적으로 작동해. 룰렛 종류를 바꾸면 해당 슬롯의 결과와 기록만 초기화돼.</p>
+</main>
+<script>
+(() => {
+  const pools = {
+    spell: "통나무|바바리안 통|지진|공허|화살|파이어볼|로켓|빙결|번개|감전|거대 눈덩이|토네이도|분노|독|덩쿨|복제|로얄 택배|반사경|고블린통|무덤".split("|"),
+    building: "대포|박격포|뇌전탑|고블린 우리|고블린 오두막|해골 무덤|폭탄 타워|인페르노 타워|바바리안 오두막|엘릭서 정제소|대형 석궁|고블린 드릴".split("|"),
+    siege: "해골통|로얄 자이언트|얼음골렘|수상한 수풀|엘릭서 골렘|배틀렘|호그라이더|미니언 자이언트|자이언트|로얄 호그|해골 돌격병|고블린 자이언트|일렉트로 자이언트|골렘|렘 라이더|라바 하운드|고블린 슈타인|룬 자이언트|해골 비행선".split("|"),
+    attack: "도둑|골드 나이트|로얄 고스트|프린스|다크 프린스|엘리트 바바리안|낭인|대장 도둑|자이언트 해골|P.E.K.K.A|메가 나이트|미니 P.E.K.K.A|수도자|볼러|고블린 머신|대포 카트|삼총사|스피릿 엠프레스|아처 퀸|해골 병사|나무꾼|전투 치유사|해골킹|광부".split("|"),
+    defense: "고블린|박쥐|고블린 갱|바바리안|미니언|미니언 패거리|로얄 훈련병|해골 군대|아처|로켓병|해골 드래곤|악동|메가 미니언|다트 고블린|머스킷병|플라잉 머신|용광로|감전돌이|마법사|베이비 드래곤|사냥꾼|마녀|일렉트로 드래곤|도끼맨|암흑 마녀|엄마 마녀|프린세스|얼음 마법사|인페르노 드래곤|피닉스|마법아처|리틀 프린스|가드|능력자 광부|스파키|기사|버서커|해골 병사|일렉트로 스피릿|아이스 스피릿|파이어 스피릿|폭탄병|발키리|고블린 데몰리셔".split("|")
+  };
+  const labels = { spell:"스펠", attack:"공격", defense:"수비", siege:"공성", building:"건물" };
+  const initialKinds = ["spell","attack","defense","siege","building","spell","attack","defense"];
+  const grid = document.getElementById("roulette-grid");
+
+  for (let i=0; i<8; i++) {
+    const card = document.createElement("section");
+    card.className = "slot";
+    card.innerHTML = `
+      <div class="slot-head"><span>슬롯 ${i+1}</span><span class="sub">#${i+1}</span></div>
+      <select aria-label="슬롯 ${i+1} 룰렛 종류">
+        ${Object.entries(labels).map(([key,label]) => `<option value="${key}">${label} 룰렛</option>`).join("")}
+      </select>
+      <div class="machine"><div class="number">READY</div><div class="result">777</div></div>
+      <div class="actions"><button type="button" class="spin">SPIN</button><button type="button" class="reset">초기화</button></div>
+      <div class="stats">추첨 횟수: <span class="count">0</span>회</div>
+      <div class="history"><strong>기록:</strong> <span class="history-list">없음</span></div>`;
+    grid.appendChild(card);
+
+    const select=card.querySelector("select"), machine=card.querySelector(".machine");
+    const number=card.querySelector(".number"), result=card.querySelector(".result");
+    const spinBtn=card.querySelector(".spin"), resetBtn=card.querySelector(".reset");
+    const countEl=card.querySelector(".count"), historyEl=card.querySelector(".history-list");
+    select.value=initialKinds[i];
+    let kind=initialKinds[i], busy=false, count=0, history=[];
+
+    const pick=()=>{ const list=pools[kind]; return list[Math.floor(Math.random()*list.length)]; };
+    const reset=()=>{ count=0; history=[]; countEl.textContent="0"; historyEl.textContent="없음"; result.textContent="777"; number.textContent="READY"; machine.classList.remove("spinning"); };
+
+    select.addEventListener("change",()=>{ if(busy)return; kind=select.value; reset(); });
+    resetBtn.addEventListener("click",()=>{ if(!busy)reset(); });
+    spinBtn.addEventListener("click",async()=>{
+      if(busy)return;
+      busy=true; spinBtn.disabled=true; resetBtn.disabled=true; select.disabled=true;
+      machine.classList.add("spinning"); number.textContent="SPINNING";
+      const start=Date.now(), duration=2500;
+      while(Date.now()-start<duration){
+        result.textContent=pick();
+        const elapsed=Date.now()-start;
+        await new Promise(resolve=>setTimeout(resolve,elapsed<1200?65:elapsed<1900?120:210));
+      }
+      const finalResult=pick();
+      result.textContent=finalResult; number.textContent="RESULT";
+      machine.classList.remove("spinning");
+      count++; countEl.textContent=String(count);
+      history.unshift(finalResult); history=history.slice(0,5);
+      historyEl.textContent=history.join(" · ");
+      busy=false; spinBtn.disabled=false; resetBtn.disabled=false; select.disabled=false;
+    });
+  }
+
+  // 전체 버튼을 누르면 현재 돌고 있지 않은 모든 슬롯을 동시에 시작
+  document.getElementById("spin-all").addEventListener("click", () => {
+    grid.querySelectorAll(".spin").forEach(button => button.click());
+  });
+})();
+</script>
+<script>
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register("./service-worker.js").catch((error) => {
+      console.warn("오프라인 저장 기능을 등록하지 못했어:", error);
+    });
+  });
+}
+</script>
+</body>
+</html>
